@@ -14,8 +14,7 @@ struct Entry
     size_t doc_id, count;
 
     // Required for tests:
-    bool operator ==(const Entry& other) const
-    {
+    bool operator ==(const Entry& other) const {
         return (doc_id == other.doc_id && count == other.count);
     }
 };

@@ -13,13 +13,10 @@ struct RelativeIndex
     size_t doc_id;
     float rank;
     size_t absoluteIndex = 0; // Added for convenience.
-
-    bool operator ==(const RelativeIndex& other) const
-    {
+    bool operator ==(const RelativeIndex& other) const {
         return (doc_id == other.doc_id && rank == other.rank);
     }
-    bool operator > (const RelativeIndex& other) const
-    {
+    bool operator > (const RelativeIndex& other) const {
         return (rank > other.rank || (rank == other.rank && doc_id < other.doc_id));
     }
 };
@@ -29,7 +26,6 @@ class SearchServer
 private:
     InvertedIndex _index;
     int maxResponses{ 5 };
-
     /**
      * Getting unique words from request line
      * @param [in] request - separate string from request.json

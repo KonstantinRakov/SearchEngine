@@ -4,22 +4,14 @@
 #include "SearchServer.hpp"
 
 /**
- * Write answers to the JSON file answers.json
- * @param [in] allRequestsResults result of search for relevant pages
+ * Preparing the result for recording.
  */
-void writeAnswers(const std::vector<std::vector<RelativeIndex>>& allRequestsResults)
-{
-    if (allRequestsResults.empty())
-    {
-        std::cout << "No matches are found.\n";
-        return;
-    }
+std::vector<std::vector<std::pair<int, float>>> preparingAnswers(const std::vector<std::vector<RelativeIndex>>& allRequestsResults){
     std::vector<std::vector<std::pair<int, float>>> allRequestsResultsReadyForJSON;
     for (auto& requestResult : allRequestsResults)
     {
         std::vector<std::pair<int, float>> requestResultReadyForJSON;
-        for (auto& pageRelevance : requestResult)
-        {
+        for (auto& pageRelevance : requestResult) {
             std::pair<int, float> relevancePair;
             relevancePair.first = (int)pageRelevance.doc_id;
             relevancePair.second = pageRelevance.rank;
@@ -27,14 +19,14 @@ void writeAnswers(const std::vector<std::vector<RelativeIndex>>& allRequestsResu
         }
         allRequestsResultsReadyForJSON.push_back(requestResultReadyForJSON);
     }
-    ConverterJSON::getInstance()->putAnswers(allRequestsResultsReadyForJSON);
+    return allRequestsResultsReadyForJSON;
 }
 
 int main()
 {
-    //Initialization:
+    //Initialization:    
     ConverterJSON::getInstance()->readConfigFile();
-    ConverterJSON::getInstance()->readRequestFile();
+    ConverterJSON::getInstance()->readRequestFile();    
     std::vector<std::string> documents = ConverterJSON::getInstance()->getTextDocuments();
     auto* invertedIndex = new InvertedIndex();
     invertedIndex->updateDocumentBase(documents);
@@ -42,11 +34,9 @@ int main()
     //Search:
     std::cout << "Searching...\n";
     SearchServer searchServer(*invertedIndex);
-    searchServer.setMaxResponses(ConverterJSON::getInstance()->getMaxResponses());
-    auto allRequestsResults = searchServer.search(ConverterJSON::getInstance()->getRequests());
-    writeAnswers(allRequestsResults);
-    std::cout << "End of search.\n";
-    //Pause the console - uncomment if pause is necessary:
-    std::cin.get();
+    searchServer.setMaxResponses(ConverterJSON::getInstance()->getMaxResponses());    
+    std::vector<std::vector<RelativeIndex>> allRequestsResults = searchServer.search(ConverterJSON::getInstance()->getRequests());
+    ConverterJSON::getInstance()->putAnswers(preparingAnswers(allRequestsResults));
+    system("pause");
     return 0;
 }
