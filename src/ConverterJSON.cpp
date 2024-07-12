@@ -1,15 +1,5 @@
 #include "ConverterJSON.hpp"
 
-//static members initialization -------------------------
-ConverterJSON* ConverterJSON::instance = nullptr;
-ConverterJSON* ConverterJSON::getInstance(){
-    if (instance == nullptr) {
-        instance = new ConverterJSON();
-    }
-    return instance;
-}
-//---------------------------------------------------------
-
 std::vector<std::string> ConverterJSON::getTextDocuments(){
     textDocuments.clear();
     for (const auto& doc : resourcesPaths) {
@@ -124,6 +114,3 @@ void ConverterJSON::readRequestFile() {
     }
 }
 
-int ConverterJSON::getMaxResponses() const {
-    return maxResponses;
-}

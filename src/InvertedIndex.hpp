@@ -22,7 +22,6 @@ struct Entry
 class InvertedIndex
 {
 private:
-
     /**
      * Perform the indexing of the separate file
      * @param [in] fileContent - std::string with file content
@@ -38,7 +37,7 @@ private:
 public:
 
     InvertedIndex() = default;
-
+    
     /**
     * Update or fill the documents base in which search will be performed
     * @param [in] texts_input - documents content

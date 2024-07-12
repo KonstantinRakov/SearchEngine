@@ -1,58 +1,5 @@
 #include "SearchServer.hpp"
 
-std::set<std::string> SearchServer::getUniqueWords(const std::string& request){
-    std::set<std::string> result;
-    std::istringstream ist(request);
-    for (std::string word; ist >> word; ) {
-        //Convert symbols to lower case:
-        std::transform(word.begin(), word.end(), word.begin(),
-            [](unsigned char c) { return std::tolower(c); });
-
-        result.emplace(word);
-    }
-    return result;
-}
-
-std::vector<std::pair<std::string, size_t>> SearchServer::getWordsEntries(const std::set<std::string>& words){
-    std::vector<std::pair<std::string, size_t>> result;
-    for (const auto& word : words) {
-        auto wordEntries = _index.getWordCount(word);
-        size_t wordEntriesSum = 0;
-        for (auto wordEntry : wordEntries) {
-            wordEntriesSum += wordEntry.count;
-        }
-        std::pair<std::string, size_t> wordAndEntry;
-        wordAndEntry.first = word;
-        wordAndEntry.second = wordEntriesSum;
-        result.push_back(wordAndEntry);
-    }
-    return result;
-}
-
-std::vector<size_t> SearchServer::getAllDocumentsWithWords(const std::vector<std::pair<std::string, size_t>>& words){
-    std::vector<size_t> docIds{};
-    // Getting entries and docIds:
-    for (const auto& wordAndEntry : words) {
-        auto entries = _index.getWordCount(wordAndEntry.first);
-        for (auto entry : entries) {
-            docIds.push_back(entry.doc_id);
-        }
-    }
-
-    // Getting unique ids from docIds:
-    std::set<size_t> uniqueDocIds(docIds.begin(), docIds.end());
-    docIds.clear();
-    docIds.assign(uniqueDocIds.begin(), uniqueDocIds.end());
-    std::sort(docIds.begin(), docIds.end(), std::less<size_t>());
-    return docIds;
-}
-
-void SearchServer::sortWordsAscendingToEntries(std::vector<std::pair<std::string, size_t>>& wordsEntries){
-    std::sort(wordsEntries.begin(), wordsEntries.end(), [](auto& left, auto& right) {
-            return left.second < right.second;
-        });
-}
-
 size_t SearchServer::getAbsoluteRelevanceForDocument(size_t docId, std::set<std::string>& uniqueWords) {
     size_t absoluteRelevance{ 0 };
     for (const auto& word : uniqueWords) {
@@ -62,31 +9,62 @@ size_t SearchServer::getAbsoluteRelevanceForDocument(size_t docId, std::set<std:
     return absoluteRelevance;
 }
 
-std::vector<std::vector<RelativeIndex>> SearchServer::search(const std::vector<std::string>& queries_input){
-    std::vector<std::vector<RelativeIndex>> result{};
+std::vector<std::vector<std::pair<int, float>>> SearchServer::search(const std::vector<std::string>& queries_input){
     if (queries_input.empty()) {
         std::cout << "Requests are empty.\n";
-        return result;
+        return {};
     }
+    std::vector<std::vector<RelativeIndex>> resultRelativeIndexes{};
 
     for (const auto& query : queries_input) {
         // Get unique words from query
-        std::set<std::string> uniqueWords = getUniqueWords(query);
+        std::set<std::string> uniqueWords;
+
+        std::istringstream ist(query);
+        for (std::string word; ist >> word; ) {
+        //Convert symbols to lower case:
+        std::transform(word.begin(), word.end(), word.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        uniqueWords.emplace(word);
+        }
         if (uniqueWords.empty()) {
             std::cout << "\t-bad request.\n";
             continue;
         }
 
         // Get the entry count for each word
-        auto wordsEntries = getWordsEntries(uniqueWords);
+        std::vector<std::pair<std::string, size_t>> wordsEntries;
+        for (const auto& word : uniqueWords) {
+            auto wordEntries = _index.getWordCount(word);
+            size_t wordEntriesSum = 0;
+            for (auto wordEntry : wordEntries) {
+                wordEntriesSum += wordEntry.count;
+            }
+            std::pair<std::string, size_t> wordAndEntry;
+            wordAndEntry.first = word;
+            wordAndEntry.second = wordEntriesSum;
+            wordsEntries.push_back(wordAndEntry);
+        }
 
         // Sort unique words according to entry count in ascending direction
-        sortWordsAscendingToEntries(wordsEntries);
+        std::sort(wordsEntries.begin(), wordsEntries.end(), [](auto& left, auto& right) {
+            return left.second < right.second;
+        });
 
         // Get the document list of documents
-        auto documentIds = getAllDocumentsWithWords(wordsEntries);
-        std::string docOrDocs = documentIds.size() == 1 ? " document " : " documents ";
-        std::string wordOrWords = uniqueWords.size() == 1 ? " word: " : " words: ";
+        std::vector<size_t> documentIds{};
+        // Getting entries and docIds:
+        for (const auto& wordAndEntry : wordsEntries) {
+            auto entries = _index.getWordCount(wordAndEntry.first);
+            for (auto entry : entries) {
+                documentIds.push_back(entry.doc_id);
+            }
+        }
+        // Getting unique ids from docIds:
+        std::set<size_t> uniqueDocIds(documentIds.begin(), documentIds.end());
+        documentIds.clear();
+        documentIds.assign(uniqueDocIds.begin(), uniqueDocIds.end());
+        std::sort(documentIds.begin(), documentIds.end(), std::less<size_t>());
 
         // Get absolute relevance and maximal relevance:
         std::vector<RelativeIndex>* relativeIndexes = new std::vector<RelativeIndex>();
@@ -122,8 +100,24 @@ std::vector<std::vector<RelativeIndex>> SearchServer::search(const std::vector<s
             relativeIndexes->erase(relativeIndexes->begin() + maxResponses, relativeIndexes->end());
         }
         // Push this vector to the result:
-        result.push_back(*relativeIndexes);
+        resultRelativeIndexes.push_back(*relativeIndexes);
         delete relativeIndexes;
+    }
+
+    /**
+     * Preparing the result for recording.
+     */
+    std::vector<std::vector<std::pair<int, float>>> result{};
+    for (auto& requestResult : resultRelativeIndexes)
+    {
+        std::vector<std::pair<int, float>> requestResultReadyForJSON;
+        for (auto& pageRelevance : requestResult) {
+            std::pair<int, float> relevancePair;
+            relevancePair.first = (int)pageRelevance.doc_id;
+            relevancePair.second = pageRelevance.rank;
+            requestResultReadyForJSON.push_back(relevancePair);
+        }
+        result.push_back(requestResultReadyForJSON);
     }
     return result;
 }

@@ -26,25 +26,6 @@ class SearchServer
 private:
     InvertedIndex _index;
     int maxResponses{ 5 };
-    /**
-     * Getting unique words from request line
-     * @param [in] request - separate string from request.json
-     * @return set of unique words
-     */
-    std::set<std::string> getUniqueWords(const std::string& request);
-
-    /**
-     * Get the vector of entries for words set
-     * @param [in] words - set of words
-     * @return vector of entries
-     */
-    std::vector<std::pair<std::string, size_t>> getWordsEntries(const std::set<std::string>& words);
-
-    /**
-     * Sort the entries vector in ascending direction of entries count
-     * @param [in/out] wordsEntries - entries vector
-     */
-    void sortWordsAscendingToEntries(std::vector<std::pair<std::string, size_t>>& wordsEntries);
 
     /**
      * Get the vector of documents where all words from request can be found
@@ -73,7 +54,7 @@ public:
     * @param [in] queries_input - search requests from requests.json 
     * @return the sorted list of relevant answers 
     */
-    std::vector<std::vector<RelativeIndex>> search(const std::vector<std::string>& queries_input);
+    std::vector<std::vector<std::pair<int, float>>> search(const std::vector<std::string>& queries_input);
 
     /**
     * Set maximal responses quantity from Search Server

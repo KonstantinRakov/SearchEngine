@@ -7,8 +7,6 @@
 class ConverterJSON
 {
 private:
-    ConverterJSON() = default; // private constructor for singleton realization
-    static ConverterJSON* instance;    
     const std::string REQUESTS_FILE_PATH = "requests.json";
     const std::string FILE_REQUESTS_FOUND = "Request file has been found. Number of queries found: ";
     const std::string FILE_REQUESTS_NOT_FOUND = "Error, request file was not found. The path to the file: ";
@@ -29,6 +27,7 @@ private:
 
 public:
 
+    ConverterJSON() = default;
     /**
     * Get the files content in string vector form 
     * @return content of files listed in config.json 
@@ -54,12 +53,6 @@ public:
     void putAnswers(std::vector<std::vector<std::pair<int, float>>> answers);
 
     /**
-    * Get the Instance object of ConverterJSON class
-    * @return instance of the singleton
-    */
-    static ConverterJSON* getInstance();
-
-    /**
      * Read config file specified in CONFIG_FILE_PATH
      */
     void readConfigFile();
@@ -68,10 +61,4 @@ public:
      * Read request file specified in REQUEST_FILE_PATH
      */
     void readRequestFile();
-
-    /**
-     * Get maximal responses quantity, which can be returned be Search Server
-     * @return maximal responses quantity
-     */
-    int getMaxResponses() const;
 };
