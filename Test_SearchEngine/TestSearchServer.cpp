@@ -22,7 +22,6 @@ TEST(TestCaseSearchServer, TestSimple) {
     InvertedIndex idx; 
     idx.updateDocumentBase(docs);
     SearchServer srv(idx);
-    //std::vector<std::vector<RelativeIndex>> result = srv.search(request);
     std::vector<std::vector<std::pair<int, float>>> result = srv.search(request);
 
     ASSERT_EQ(result, expected);
@@ -53,7 +52,6 @@ TEST(TestCaseSearchServer, TestTop5) {
         "warsaw is the capital of poland",
     };
     const std::vector<std::string> request = {"moscow is the capital of russia"};
-    //const std::vector<std::vector<RelativeIndex>> expected = {
     const std::vector<std::vector<std::pair<int, float>>> expected = {
         {
             {7, 1},

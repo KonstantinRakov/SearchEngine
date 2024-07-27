@@ -5,6 +5,7 @@
 #include <set>
 #include <algorithm>
 #include <cmath>
+#include <exception>
 
 #include "InvertedIndex.hpp"
 
@@ -24,6 +25,9 @@ struct RelativeIndex
 class SearchServer
 {
 private:
+    const std::string ERROR_REQUESTS_EMPTY = " there are no queries for conducting a search.\n";
+    const std::string ERROR_BAD_REQUEST = " bad request.\n";
+
     InvertedIndex _index;
     int maxResponses{ 5 };
 

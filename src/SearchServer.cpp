@@ -11,8 +11,7 @@ size_t SearchServer::getAbsoluteRelevanceForDocument(size_t docId, std::set<std:
 
 std::vector<std::vector<std::pair<int, float>>> SearchServer::search(const std::vector<std::string>& queries_input){
     if (queries_input.empty()) {
-        std::cout << "Requests are empty.\n";
-        return {};
+        throw std::invalid_argument(ERROR_REQUESTS_EMPTY);
     }
     std::vector<std::vector<RelativeIndex>> resultRelativeIndexes{};
 
@@ -23,12 +22,11 @@ std::vector<std::vector<std::pair<int, float>>> SearchServer::search(const std::
         std::istringstream ist(query);
         for (std::string word; ist >> word; ) {
         //Convert symbols to lower case:
-        std::transform(word.begin(), word.end(), word.begin(),
-            [](unsigned char c) { return std::tolower(c); });
+        std::transform(word.begin(), word.end(), word.begin(), [](unsigned char c) { return std::tolower(c); });
         uniqueWords.emplace(word);
         }
         if (uniqueWords.empty()) {
-            std::cout << "\t-bad request.\n";
+            std::cerr << ERROR_BAD_REQUEST;
             continue;
         }
 

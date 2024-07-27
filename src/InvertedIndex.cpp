@@ -4,39 +4,6 @@
 std::mutex InvertedIndex::mutexIndexMap;
 //-------------------------------------------------------------
 
-void InvertedIndex::updateDocumentBase(const std::vector<std::string>& input_docs){
-    if (input_docs.empty()) {
-        std::cerr << "\t- Indexing: no content in docs content base\n";
-        return;
-    }
-
-    indexingIsOngoing = true;
-
-    frequencyDictionary.clear();
-    size_t docId = 0;
-    for (const auto& content : input_docs) {
-        // Start indexing thread.
-        std::thread index([this, &content, docId]() {indexTheFile(content, docId); });
-        ++docId;
-        index.join();
-    }
-    indexingIsOngoing = false;
-}
-
-std::vector<Entry> InvertedIndex::getWordCount(const std::string& word){
-    if (indexingIsOngoing) {
-        std::cout << "Index is ongoing, please repeat the request later.\n";
-        return {};
-    }
-    auto it = frequencyDictionary.find(word);
-    if (it != frequencyDictionary.end()) {
-        return it->second;
-    }
-    else {
-        return {};
-    }
-}
-
 void InvertedIndex::indexTheFile(const std::string& fileContent, size_t docId){
     // Split doc on words.
     std::map<std::string, Entry> fileFreqDictionary;
@@ -68,9 +35,44 @@ void InvertedIndex::indexTheFile(const std::string& fileContent, size_t docId){
     mutexIndexMap.unlock();
 }
 
+void InvertedIndex::updateDocumentBase(const std::vector<std::string>& input_docs){
+    if (input_docs.empty()) {
+        throw std::invalid_argument(ERROR_INPUT_DOCS_EMPTY);
+    }
+
+    indexingIsOngoing = true;
+
+    frequencyDictionary.clear();
+    size_t docId = 0;
+
+    ThreadPool threadpool(input_docs.size());
+
+    for (const auto& content : input_docs) {
+        // Start indexing thread.        
+        threadpool.addTaskThreadPool([this, &content, docId]() {indexTheFile(content, docId); });
+        ++docId;
+    }
+    threadpool.wait_all();
+    indexingIsOngoing = false;
+}
+
+std::vector<Entry> InvertedIndex::getWordCount(const std::string& word) const{
+    if (indexingIsOngoing) {
+        std::cerr << INDEX_ONGOING;
+        return {};
+    }
+    auto it = frequencyDictionary.find(word);
+    if (it != frequencyDictionary.end()) {
+        return it->second;
+    }
+    else {
+        return {};
+    }
+}
+
 size_t InvertedIndex::getWordCountInDoc(const std::string& word, const size_t doc_id) const {
     if (indexingIsOngoing) {
-        std::cout << "Index is ongoing, please repeat the request later.\n";
+        std::cerr << INDEX_ONGOING;
         return 0;
     }
     size_t wordCountInDoc = 0;

@@ -8,6 +8,9 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <exception>
+
+#include "ThreadPool.hpp"
 
 struct Entry
 {
@@ -22,17 +25,20 @@ struct Entry
 class InvertedIndex
 {
 private:
+    const std::string INDEX_ONGOING = "Index is ongoing, please repeat the request later.\n";
+    const std::string ERROR_INPUT_DOCS_EMPTY = "there is no content in the docs content database for indexing.\n";
+
+    std::map<int, std::string> document_list; // map of documents (unique id and file name) for search in
+    static std::mutex mutexIndexMap; // access to index map
+    std::map<std::string, std::vector<Entry>> frequencyDictionary; // frequency dictionary for all files
+    bool indexingIsOngoing;
+
     /**
      * Perform the indexing of the separate file
      * @param [in] fileContent - std::string with file content
      * @param [in] docId - id of the file
      */
     void indexTheFile(const std::string& fileContent, size_t docId);
-
-    std::map<int, std::string> document_list; // map of documents (unique id and file name) for search in
-    static std::mutex mutexIndexMap; // access to index map
-    std::map<std::string, std::vector<Entry>> frequencyDictionary; // frequency dictionary for all files
-    bool indexingIsOngoing;
 
 public:
 
@@ -49,7 +55,7 @@ public:
     * @param [in] word - word for which the entry frequency should be detected
     * @return vector of words with calculated entry frequency
     */
-    std::vector<Entry> getWordCount(const std::string& word);
+    std::vector<Entry> getWordCount(const std::string& word) const;
 
     /**
      * Get the word count in certain document
@@ -57,6 +63,6 @@ public:
      * @param [in] doc_id - document id for search
      * @return count of the word in certain document
      */
-    size_t getWordCountInDoc(const std::string& word, const size_t doc_id) const; // ADDITIONAL METHOD
+    size_t getWordCountInDoc(const std::string& word, const size_t doc_id) const; 
 
 };
